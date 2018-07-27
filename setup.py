@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='qradial_menu',
-    version='0.1.0',
+    version='0.1.1',
     packages=['qradial_menu'],
     install_requires=[],
     url='https://github.com/rubenhenares/qradial_menu',
