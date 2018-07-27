@@ -8,13 +8,13 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 # *********************************************************************
 # +++ CLASS
 # *********************************************************************
-class RadialMenu(QtWidgets.QWidget):
+class QRadialMenu(QtWidgets.QWidget):
 
     # =====================================================================
     # +++ CONSTRUCTOR
     # =====================================================================
     def __init__(self, radius_=128.0, thickness_=48.0, icon_size_=36.0, parent=None):
-        super(RadialMenu, self).__init__(parent)
+        super(QRadialMenu, self).__init__(parent)
 
         self._radius = radius_
         self._thickness = thickness_
@@ -78,19 +78,23 @@ class RadialMenu(QtWidgets.QWidget):
 
         self.setFixedWidth(self._radius * 2.0 + self._thickness)
         self.setFixedHeight(self._radius * 2.0 + self._thickness)
+
         self.update()
 
     def _update_step(self):
         self._arc_step = int(360.0 / len(self._actions))
+        self.update()
 
     def _update_hover_index(self):
         centered_position = self._mouse_pos - self._bbox.center()
         radius, radians, degrees = self._cartesian_to_polar(centered_position)
 
         if radius > self._cancel_radius:
-            self._hover_index = math.floor(degrees / self._arc_step)
+            self._hover_index = int(math.floor(degrees / self._arc_step))
         else:
             self._hover_index = -1
+
+        self.update()
 
     def _degrees_to_cartesian(self, radius, degrees):
         radians = ((math.pi * 2.0) / 360.0) * degrees
@@ -139,30 +143,33 @@ class RadialMenu(QtWidgets.QWidget):
         if len(self._actions) > index > -1:
             return self._actions[index]
 
-    def popup(self, position):
+    def show(self, position):
         # TODO: Override show?
         position.setX(position.x() - self._bbox.width() / 2.0)
         position.setY(position.y() - self._bbox.height() / 2.0)
         self.move(position)
 
-        self.show()
         self.grabMouse()
 
-    def close(self):
+        super(QRadialMenu, self).show()
+
+    def hide(self):
         if self._hover_index > -1:
             self._actions[self._hover_index].trigger()
 
         self._hover_index = -1
-        self.hide()
-        self.releaseMouse()
         self._mouse_pos = None
+
+        self.releaseMouse()
+
+        super(QRadialMenu, self).hide()
 
     # =====================================================================
     # +++ OVERRIDES
     # =====================================================================
     def mouseReleaseEvent(self, event):
         if event.button() == QtCore.Qt.RightButton:
-            self.close()
+            self.hide()
 
     def mouseMoveEvent(self, event):
         self._mouse_pos = event.pos()
@@ -192,7 +199,7 @@ class RadialMenu(QtWidgets.QWidget):
             arc_hover_pen.setCapStyle(QtCore.Qt.FlatCap)
 
             painter.setPen(arc_hover_pen)
-            painter.setOpacity(0.55)
+            painter.setOpacity(0.35)
 
             painter.drawArc(self._arc_bbox, self._hover_index * self._arc_step * 16, (self._arc_step - self._arc_margin) * 16)
 
@@ -217,19 +224,56 @@ class RadialMenu(QtWidgets.QWidget):
                 pixmap_position.setY(pixmap_position.y() - self._icon_size / 2.0)
                 painter.drawPixmap(pixmap_position, pixmap)
 
-        # Draw text
 
-        # DEBUG
-        if False:
-            debug_brush = QtGui.QBrush(QtCore.Qt.red)
+# *********************************************************************
+# +++ DEMO
+# *********************************************************************
+if __name__ == '__main__':
 
-            painter.setPen(QtCore.Qt.NoPen)
-            painter.setBrush(debug_brush)
-            painter.setOpacity(0.25)
-            painter.drawRect(self._bbox)
+    import os
+    from functools import partial
 
-            arc_pen = QtGui.QPen(QtCore.Qt.blue, self._thickness)
-            arc_pen.setCapStyle(QtCore.Qt.FlatCap)
-            painter.setPen(arc_pen)
-            painter.setOpacity(1.0)
-            painter.drawArc(self._arc_bbox, 0 * self._arc_step * 16, -self._arc_step * 16)
+    class Window(QtWidgets.QMainWindow):
+        def __init__(self):
+            super(Window, self).__init__(None)
+            self._init_menu()
+
+            self._feedback_widget = QtWidgets.QLabel()
+
+            center_layout = QtWidgets.QHBoxLayout()
+            center_layout.addStretch(1)
+            center_layout.addWidget(self._feedback_widget)
+            center_layout.addStretch(1)
+
+            center_widget = QtWidgets.QWidget()
+            center_widget.setLayout(center_layout)
+
+            self.setCentralWidget(center_widget)
+
+            self.setMinimumSize(640, 640)
+
+        def _init_menu(self):
+            current_path = os.path.dirname(__file__)
+            icon_path = os.path.join(current_path, 'resources', 'appbar.warning.png')
+            icon_path = os.path.normpath(icon_path)
+            icon = QtGui.QIcon(icon_path)
+
+            self._menu = QRadialMenu(parent=self)
+
+            for i in range(6):
+                action = QtWidgets.QAction(f'Action {i}')
+                action.setIcon(icon)
+                action.triggered.connect(partial(self._run_action, f'Triggered action: {i}'))
+                self._menu.add_action(action)
+
+        def _run_action(self, value):
+            self._feedback_widget.setText(value)
+
+        def mousePressEvent(self, event):
+            if event.button() == QtCore.Qt.RightButton:
+                self._menu.show(event.pos())
+
+    app = QtWidgets.QApplication([])
+    window = Window()
+    window.show()
+    app.exec_()

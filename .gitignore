@@ -1,4 +1,4 @@
 .idea/*
 dist/*
-qss_debugger.egg-info/*
+*.egg-info/*
 venv/*
