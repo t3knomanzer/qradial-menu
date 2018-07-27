@@ -1,0 +1,4 @@
+.idea/*
+dist/*
+qss_debugger.egg-info/*
+venv/*
