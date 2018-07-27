@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name='qradial_debugger',
+    name='qradial_menu',
     version='0.1.0',
     packages=['qradial_menu'],
     install_requires=[],
